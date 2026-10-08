@@ -67,6 +67,7 @@ Arrêter le serveur : Ctrl+C. Ollama doit rester lancé en arrière-plan.
 
 - **Le chatbot** : http://localhost:8000
 - **Le back-office de la Maison Delcourt** (clients et conversations) : http://localhost:8000/admin
+  Fermé par HTTP Basic : identifiants par défaut `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »).
 - **La documentation de l'API** : http://localhost:8000/docs
 - **La base de données** : le fichier `chocobot.db`, créé au premier message, dans le dossier où vous lancez `uvicorn`.
   Ouvrez-le avec [DB Browser for SQLite](https://sqlitebrowser.org/) (ou `sqlite3 chocobot.db`). Tables : `customers`, `messages`.
@@ -79,8 +80,29 @@ pratique pour mesurer l'état avant/après. Chaque message prend plusieurs secon
 
 ## Réglages facultatifs
 
+### Identifiants du back-office (/admin)
+
+Par défaut : `admin` / `delcourt`. Pour les changer, exportez des variables d'environnement avant de lancer `uvicorn`
+(ou mettez-les dans un fichier `.env`) :
+
+```
+ADMIN_USER=delcourt
+ADMIN_PASSWORD=mot-de-passe-solide
+```
+
+### Modèle LLM
+
 Pour changer de modèle ou simuler des pannes, copiez `.env.example` en `.env` (une seule fois : le refaire écrase vos
 réglages), décommentez les lignes voulues, puis relancez `uvicorn`.
+
+## Fin de conversation
+
+L'historique des messages d'une session est **supprimé de la base** quand la conversation se termine, c'est-à-dire :
+
+- au clic sur « Nouvelle conversation » ;
+- à la fermeture ou au rechargement de l'onglet.
+
+Seules les conversations en cours apparaissent donc dans le back-office.
 
 ## Structure
 
