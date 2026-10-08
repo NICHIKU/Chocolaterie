@@ -89,6 +89,11 @@ async function post(path, payload){
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
+// Fin de conversation : on demande au serveur d'effacer l'historique des messages
+function endConversation(keepalive){
+  return fetch("/chat/end", {method: "POST", headers: {"Content-Type": "application/json"},
+                             body: JSON.stringify({session_id: sid}), keepalive: !!keepalive}).catch(() => {});
+}
 async function send(text){
   if (busy) return;
   busy = true; el("go").disabled = true;
@@ -125,10 +130,13 @@ el("save").onclick = async () => {
 ids.forEach(id => el(id).addEventListener("input", () => el("saved").textContent = ""));
 
 el("reset").onclick = () => {
+  endConversation(false);
   sid = localStorage.sid = crypto.randomUUID();
   log.innerHTML = ""; ids.forEach(id => el(id).value = ""); el("saved").textContent = "";
   welcome();
 };
+// Fermeture ou rechargement de l'onglet : la conversation est terminée
+addEventListener("pagehide", e => { if (!e.persisted) endConversation(true); });
 welcome();
 </script>
 </body>

@@ -45,12 +45,18 @@ function table(el, cols, rows){
       return "<td" + (c[0] === "role" && r.role === "user" ? ' class="u"' : "") + ">" + d.innerHTML + "</td>";
     }).join("") + "</tr>").join("");
 }
-fetch("/admin/data").then(r => r.json()).then(d => {
+fetch("/admin/data").then(r => {
+  if (r.status === 401) throw new Error("Authentification requise");
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  return r.json();
+}).then(d => {
   document.getElementById("nc").textContent = d.customers.length;
   document.getElementById("nm").textContent = d.messages.length;
   document.getElementById("mode").textContent = d.llm.big;
   table(document.getElementById("tc"), [["created_at","Date"],["name","Nom"],["email","Email"],["allergies","Allergies"],["children_ages","Enfants"],["session_id","Session"]], d.customers);
   table(document.getElementById("tm"), [["created_at","Date"],["session_id","Session"],["role","Rôle"],["content","Message"]], d.messages);
+}).catch(e => {
+  document.querySelector("main").innerHTML = "<p><b>Accès refusé :</b> " + e.message + "</p>";
 });
 </script>
 </body>
