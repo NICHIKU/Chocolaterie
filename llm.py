@@ -1,9 +1,3 @@
-# Par défaut : Ollama installé sur votre machine (aucun réglage nécessaire)
-BASE_URL = os.getenv("LLM_BASE_URL", "http://localhost:11434/v1")
-API_KEY = os.getenv("LLM_API_KEY", "ollama")
-BIG_MODEL = os.getenv("LLM_MODEL_BIG", "llama3.2:3b")
-SMALL_MODEL = os.getenv("LLM_MODEL_SMALL", "llama3.2:1b")
-
 import logging
 import os
 import random
