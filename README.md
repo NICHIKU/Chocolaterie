@@ -67,7 +67,8 @@ Arrêter le serveur : Ctrl+C. Ollama doit rester lancé en arrière-plan.
 
 - **Le chatbot** : http://localhost:8000
 - **Le back-office de la Maison Delcourt** (clients et conversations) : http://localhost:8000/admin
-  Fermé par HTTP Basic : identifiants par défaut `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »).
+  Affiche un formulaire de connexion (pas de fenêtre native du navigateur) : identifiants par défaut
+  `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »).
 - **La documentation de l'API** : http://localhost:8000/docs
 - **La base de données** : le fichier `chocobot.db`, créé au premier message, dans le dossier où vous lancez `uvicorn`.
   Ouvrez-le avec [DB Browser for SQLite](https://sqlitebrowser.org/) (ou `sqlite3 chocobot.db`). Tables : `customers`, `messages`.
@@ -82,7 +83,10 @@ pratique pour mesurer l'état avant/après. Chaque message prend plusieurs secon
 
 ### Identifiants du back-office (/admin)
 
-Par défaut : `admin` / `delcourt`. Pour les changer, exportez des variables d'environnement avant de lancer `uvicorn`
+Par défaut : `admin` / `delcourt`. La page `/admin` affiche toujours le formulaire de connexion : les identifiants
+ne sont gardés qu'en mémoire dans l'onglet, donc dès qu'on quitte ou recharge la page, il faut se reconnecter
+(aucune session, aucun cookie côté serveur).
+Pour changer les identifiants, exportez des variables d'environnement avant de lancer `uvicorn`
 (ou mettez-les dans un fichier `.env`) :
 
 ```
