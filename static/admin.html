@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Back-office · Maison Delcourt</title>
+<style>
+body{margin:0;font-family:system-ui,Segoe UI,sans-serif;background:#f4efe6;color:#2b1810}
+header{background:#2b1810;color:#f6ecdc;padding:16px 24px;border-bottom:4px solid #b8893b}
+header h1{margin:0;font-size:1.2rem}
+main{max-width:1150px;margin:20px auto;padding:0 16px}
+.stats{display:flex;gap:14px;margin-bottom:18px;flex-wrap:wrap}
+.stat{background:#fff;border:1px solid #e4d5bb;border-radius:6px;padding:12px 18px}
+.stat b{display:block;font-size:1.5rem}
+h2{margin:22px 0 8px;font-size:1rem;text-transform:uppercase;letter-spacing:.08em;color:#4a2a1c}
+.wrap{overflow-x:auto;background:#fff;border:1px solid #e4d5bb;border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:8px 12px;border-bottom:1px solid #f0e6d2;text-align:left;vertical-align:top}
+th{background:#faf3e4;position:sticky;top:0}
+td.u{color:#a3243b}
+small{color:#7a6657}
+</style>
+</head>
+<body>
+<header><h1>Back-office ChocoBot · Maison Delcourt</h1></header>
+<main>
+ <div class="stats">
+  <div class="stat"><b id="nc">–</b>clients</div>
+  <div class="stat"><b id="nm">–</b>messages (200 derniers)</div>
+  <div class="stat"><b id="mode">–</b>modèle LLM (Ollama)</div>
+  <div class="stat"><b>non suivi</b>tokens / coût / erreurs</div>
+ </div>
+ <h2>Clients</h2>
+ <div class="wrap"><table id="tc"></table></div>
+ <h2>Conversations</h2>
+ <div class="wrap"><table id="tm"></table></div>
+ <p><small>Base SQLite : fichier <code>chocobot.db</code> à la racine du projet.</small></p>
+</main>
+<script>
+const fmt = t => new Date(t * 1000).toLocaleString("fr-FR");
+function table(el, cols, rows){
+  el.innerHTML = "<tr>" + cols.map(c => "<th>" + c[1] + "</th>").join("") + "</tr>" +
+    rows.map(r => "<tr>" + cols.map(c => {
+      const v = c[0] === "created_at" ? fmt(r[c[0]]) : r[c[0]];
+      const d = document.createElement("div"); d.textContent = v ?? "";
+      return "<td" + (c[0] === "role" && r.role === "user" ? ' class="u"' : "") + ">" + d.innerHTML + "</td>";
+    }).join("") + "</tr>").join("");
+}
+fetch("/admin/data").then(r => r.json()).then(d => {
+  document.getElementById("nc").textContent = d.customers.length;
+  document.getElementById("nm").textContent = d.messages.length;
+  document.getElementById("mode").textContent = d.llm.big;
+  table(document.getElementById("tc"), [["created_at","Date"],["name","Nom"],["email","Email"],["allergies","Allergies"],["children_ages","Enfants"],["session_id","Session"]], d.customers);
+  table(document.getElementById("tm"), [["created_at","Date"],["session_id","Session"],["role","Rôle"],["content","Message"]], d.messages);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+[
+  {"id": "C01", "nom": "Coffret Beffroi", "prix": 24, "contenu": ["ganache nature", "praliné noisette", "caramel beurre salé"], "allergenes": ["lait", "fruits à coque"], "tags": ["classique", "lait"]},
+  {"id": "C02", "nom": "Coffret Ch'ti Noir", "prix": 32, "contenu": ["noir 72%", "orange confite", "gingembre"], "allergenes": ["soja"], "tags": ["noir", "intense"]},
+  {"id": "C03", "nom": "Coffret Gaufre de Lille", "prix": 18, "contenu": ["gaufre vergeoise", "chocolat au lait", "spéculoos"], "allergenes": ["lait", "gluten", "oeuf"], "tags": ["gourmand", "enfants"]},
+  {"id": "C04", "nom": "Coffret Sans Noix", "prix": 28, "contenu": ["ganache vanille", "framboise", "menthe"], "allergenes": ["lait", "soja"], "tags": ["fruité", "sans noix"]},
+  {"id": "C05", "nom": "Coffret Vegan Flandres", "prix": 35, "contenu": ["noir 70%", "amande-coco", "thé matcha"], "allergenes": ["fruits à coque"], "tags": ["vegan", "noir"]},
+  {"id": "C06", "nom": "Grand Coffret Noël", "prix": 59, "contenu": ["assortiment 36 pièces", "orangettes", "truffes"], "allergenes": ["lait", "fruits à coque", "soja", "gluten"], "tags": ["cadeau", "grand"]},
+  {"id": "C07", "nom": "Mendiants des Enfants", "prix": 14, "contenu": ["mendiants lait", "billes croustillantes"], "allergenes": ["lait", "fruits à coque", "gluten"], "tags": ["enfants", "petit prix"]}
+]
