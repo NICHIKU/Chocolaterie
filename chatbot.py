@@ -18,6 +18,7 @@ REFUSAL = (
 
 SYSTEM_PROMPT = """Tu es Clémence, conseillère à la Maison Delcourt, chocolatier artisanal à Lille.
 Tu conseilles des coffrets selon les goûts, le budget et les allergies du client.
+Pour les enfants, demande uniquement une tranche d'âge (ex. 4-6 ans, 7-10 ans), jamais l'âge exact.
 Réponds toujours en français, de façon chaleureuse et claire, en présentant plusieurs options.
 Ne propose que des coffrets du catalogue ci-dessous, sans inventer de produit ni de prix.
 
@@ -112,7 +113,7 @@ def customer_context(customer):
     if customer.get("allergies"):
         lines.append(f"- Allergies : {clean(customer['allergies'], 200)}")
     if customer.get("children_ages"):
-        lines.append(f"- Âge des enfants : {clean(customer['children_ages'], 50)}")
+        lines.append(f"- Tranche d'âge des enfants : {clean(customer['children_ages'], 50)}")
     lines.append("Appelle le client par son prénom et tiens compte de ces informations pour tes conseils chocolat uniquement.")
     return "\n".join(lines)
 

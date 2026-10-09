@@ -45,7 +45,7 @@ aside label{display:block;font-size:.78rem;letter-spacing:.06em;text-transform:u
 .save{width:100%;margin-top:16px;padding:11px 8px}
 #saved{margin-top:8px;font-size:.82rem;color:#3d7a3d;min-height:1.2em}
 button.go:disabled{opacity:.55;cursor:wait}
-aside input{width:100%;padding:9px 10px;border:1px solid var(--ligne);border-radius:5px;font:inherit;background:#fff}
+aside input,aside select{width:100%;padding:9px 10px;border:1px solid var(--ligne);border-radius:5px;font:inherit;background:#fff}
 </style>
 </head>
 <body>
@@ -79,7 +79,14 @@ aside input{width:100%;padding:9px 10px;border:1px solid var(--ligne);border-rad
   <label for="name">Prénom et nom</label><input id="name">
   <label for="email">Email</label><input id="email" type="email">
   <label for="allergies">Allergies</label><input id="allergies" placeholder="ex. noisettes, gluten">
-  <label for="kids">Âge des enfants</label><input id="kids" placeholder="ex. 6, 9">
+  <label for="kids">Tranche d'âge des enfants</label>
+  <select id="kids">
+   <option value="">Non précisé</option>
+   <option>0-3 ans</option>
+   <option>4-6 ans</option>
+   <option>7-10 ans</option>
+   <option>11 ans et plus</option>
+  </select>
   <button id="save" class="go save" type="button">Enregistrer mes informations</button>
   <div id="saved"></div>
  </aside>
