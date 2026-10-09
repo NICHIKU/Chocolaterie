@@ -66,12 +66,13 @@ Arrêter le serveur : Ctrl+C. Ollama doit rester lancé en arrière-plan.
 ## Où voir quoi
 
 - **Le chatbot** : http://localhost:8000
-- **Le back-office de la Maison Delcourt** (clients et conversations) : http://localhost:8000/admin
+- **Le back-office de la Maison Delcourt** (clients uniquement) : http://localhost:8000/admin
   Affiche un formulaire de connexion (pas de fenêtre native du navigateur) : identifiants par défaut
   `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »).
 - **La documentation de l'API** : http://localhost:8000/docs
 - **La base de données** : le fichier `chocobot.db`, créé au premier message, dans le dossier où vous lancez `uvicorn`.
-  Ouvrez-le avec [DB Browser for SQLite](https://sqlitebrowser.org/) (ou `sqlite3 chocobot.db`). Tables : `customers`, `messages`.
+  Ouvrez-le avec [DB Browser for SQLite](https://sqlitebrowser.org/) (ou `sqlite3 chocobot.db`). Table : `customers`.
+  Aucun historique de conversation n'y est stocké : la table `messages` n'existe plus (les anciennes données sont purgées au démarrage).
   Pour repartir de zéro, arrêtez le serveur et supprimez ce fichier.
 
 ## Mesurer
@@ -101,12 +102,13 @@ réglages), décommentez les lignes voulues, puis relancez `uvicorn`.
 
 ## Fin de conversation
 
-L'historique des messages d'une session est **supprimé de la base** quand la conversation se termine, c'est-à-dire :
+Aucun historique de conversation n'est **jamais enregistré en base** : les messages vivent uniquement en mémoire le
+temps de la conversation active et n'apparaissent jamais dans le back-office. Cet historique en mémoire est oublié :
 
 - au clic sur « Nouvelle conversation » ;
-- à la fermeture ou au rechargement de l'onglet.
-
-Seules les conversations en cours apparaissent donc dans le back-office.
+- à la fermeture ou au rechargement de l'onglet ;
+- automatiquement après 30 minutes d'inactivité de la session ;
+- à chaque redémarrage du serveur.
 
 ## Structure
 

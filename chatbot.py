@@ -1,7 +1,35 @@
-import json, os, re
+import json, os, re, time
 import db
 import llm
 import unicodedata
+
+# Historique de conversation : uniquement en mémoire, jamais en base.
+# Une session inactive depuis HISTORY_TTL est oubliée automatiquement.
+HISTORY_TTL = 1800
+_sessions = {}
+
+
+def _purge_stale():
+    now = time.time()
+    for sid in [s for s, v in _sessions.items() if now - v["ts"] > HISTORY_TTL]:
+        del _sessions[sid]
+
+
+def save_message(session_id, role, content):
+    _purge_stale()
+    entry = _sessions.setdefault(session_id, {"messages": [], "ts": time.time()})
+    entry["messages"].append({"role": role, "content": content})
+    entry["ts"] = time.time()
+
+
+def get_history(session_id):
+    _purge_stale()
+    entry = _sessions.get(session_id)
+    return list(entry["messages"]) if entry else []
+
+
+def clear_history(session_id):
+    _sessions.pop(session_id, None)
 
 with open(os.path.join(os.path.dirname(__file__), "data", "catalog.json"), encoding="utf-8") as f:
     CATALOG = json.load(f)
@@ -120,19 +148,19 @@ def customer_context(customer):
 
 def handle_chat(session_id, message):
     customer = db.get_customer(session_id)
-    history = db.get_history(session_id)[-10:]
+    history = get_history(session_id)[-10:]
 
     if not is_on_topic(history, message):
         print(f"[chat][refusé] {customer} : {message}")
         return {"reply": REFUSAL}
 
-    db.save_message(session_id, "user", message)
+    save_message(session_id, "user", message)
     print(f"[chat] {customer} : {message}")
 
     system = SYSTEM_PROMPT + customer_context(customer)
 
     # On ignore les anciens messages vides (ex. réponses ratées déjà enregistrées)
-    history = [m for m in db.get_history(session_id)[-10:] if (m.get("content") or "").strip()]
+    history = [m for m in get_history(session_id)[-10:] if (m.get("content") or "").strip()]
 
     messages = [{"role": "system", "content": system}] + [dict(m) for m in history]
 
@@ -149,5 +177,5 @@ def handle_chat(session_id, message):
         reply = "Désolé, je n'ai pas pu répondre. Pouvez-vous reformuler votre demande ?"
         return {"reply": reply}  # on ne l'enregistre pas dans l'historique
 
-    db.save_message(session_id, "assistant", reply)
+    save_message(session_id, "assistant", reply)
     return {"reply": reply}

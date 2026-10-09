@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from chatbot import handle_chat
+from chatbot import handle_chat, clear_history
 import db
 import llm
 
@@ -65,14 +65,15 @@ def chat(body: ChatIn):
     return handle_chat(body.session_id, body.message)
 
 
-# Fin de conversation : on efface l'historique des messages de cette session
+# Fin de conversation : on oublie l'historique en mémoire de cette session
 @app.post("/chat/end")
 def chat_end(body: SessionIn):
-    db.clear_history(body.session_id)
+    clear_history(body.session_id)
     return {"status": "cleared"}
 
 
-# Back-office de l'équipe Delcourt : pratique pour voir qui a écrit quoi
+# Back-office de l'équipe Delcourt : uniquement les clients enregistrés,
+# aucun historique de conversation n'y figure.
 # /admin affiche toujours le formulaire ; seules les données sont protégées,
 # sans header WWW-Authenticate pour ne jamais déclencher la popup du navigateur.
 @app.get("/admin")

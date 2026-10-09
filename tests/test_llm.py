@@ -101,7 +101,8 @@ def test_chat_propagates_provider_error(monkeypatch):
 
 def test_chat_simulated_failure(monkeypatch):
     calls = make_fake_openai(monkeypatch)
-    monkeypatch.setenv("FAIL_RATE", "1")
+    monkeypatch.setattr(llm, "FAIL_RATE", 1.0)
+    monkeypatch.setattr(llm, "RETRY_DELAY_SECONDS", 0)
 
     with pytest.raises(RuntimeError, match="Panne simulée"):
         llm.chat(llm.BIG_MODEL, [{"role": "user", "content": "bonjour"}])
@@ -110,8 +111,8 @@ def test_chat_simulated_failure(monkeypatch):
 
 
 def test_chat_no_simulated_failure_by_default(monkeypatch):
-    monkeypatch.setenv("FAIL_RATE", "0")
-    monkeypatch.setenv("EXTRA_LATENCY", "0")
+    monkeypatch.setattr(llm, "FAIL_RATE", 0.0)
+    monkeypatch.setattr(llm, "EXTRA_LATENCY", 0.0)
     calls = make_fake_openai(monkeypatch)
 
     llm.chat(llm.BIG_MODEL, [{"role": "user", "content": "bonjour"}])
