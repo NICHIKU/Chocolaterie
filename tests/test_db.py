@@ -52,7 +52,7 @@ def test_get_customer_maps_row_to_dict(monkeypatch):
         "name": "Léa",
         "email": "lea@example.com",
         "allergies": "noisettes",
-        "children_ages": "6 ans",
+        "children_ages": "4-6 ans",
     }
     sql, params = conn.calls[0]
     assert "WHERE session_id=?" in sql
@@ -67,60 +67,17 @@ def test_get_unknown_customer_returns_empty_dict(monkeypatch):
     assert conn.calls  # la requête est bien exécutée même sans ligne
 
 
-def test_save_message_executes_insert_and_commits(monkeypatch):
-    conn = fake_conn(monkeypatch)
-    monkeypatch.setattr(db.time, "time", lambda: 1_700_000_000.0)
-
-    db.save_message("s1", "user", "bonjour")
-
-    assert conn.calls == [
-        (
-            "INSERT INTO messages (session_id, role, content, created_at) VALUES (?,?,?,?)",
-            ("s1", "user", "bonjour", 1_700_000_000.0),
-        )
-    ]
-    assert conn.commits == 1
+def test_db_exposes_no_message_persistence():
+    """Aucune écriture ni lecture d'historique de conversation dans SQLite."""
+    for name in ["save_message", "get_history", "clear_history"]:
+        assert not hasattr(db, name), f"db.{name} ne doit plus exister"
 
 
-def test_get_history_orders_by_id_and_maps_rows(monkeypatch):
-    conn = fake_conn(
-        monkeypatch,
-        fetchall_results=[
-            [("user", "bonjour"), ("assistant", "bonjour !"), ("user", "un coffret ?")]
-        ],
-    )
-
-    assert db.get_history("s1") == [
-        {"role": "user", "content": "bonjour"},
-        {"role": "assistant", "content": "bonjour !"},
-        {"role": "user", "content": "un coffret ?"},
-    ]
-    sql, params = conn.calls[0]
-    assert "ORDER BY id" in sql
-    assert params == ("s1",)
-
-
-def test_get_history_without_row_returns_empty_list(monkeypatch):
-    fake_conn(monkeypatch)
-
-    assert db.get_history("s1") == []
-
-
-def test_clear_history_deletes_only_given_session_and_commits(monkeypatch):
-    conn = fake_conn(monkeypatch)
-
-    db.clear_history("s1")
-
-    assert conn.calls == [("DELETE FROM messages WHERE session_id=?", ("s1",))]
-    assert conn.commits == 1
-
-
-def test_get_all_builds_payload_from_both_queries(monkeypatch):
+def test_get_all_returns_only_customers(monkeypatch):
     conn = fake_conn(
         monkeypatch,
         fetchall_results=[
             [("s1", "Léa", "lea@example.com", "noisettes", "6 ans", 1.0)],
-            [(7, "s1", "user", "bonjour", 2.0)],
         ],
     )
 
@@ -137,10 +94,7 @@ def test_get_all_builds_payload_from_both_queries(monkeypatch):
                 "created_at": 1.0,
             }
         ],
-        "messages": [
-            {"id": 7, "session_id": "s1", "role": "user", "content": "bonjour", "created_at": 2.0}
-        ],
     }
-    assert len(conn.calls) == 2
+    assert "messages" not in data
+    assert len(conn.calls) == 1
     assert "ORDER BY created_at DESC" in conn.calls[0][0]
-    assert "ORDER BY id DESC LIMIT 200" in conn.calls[1][0]
