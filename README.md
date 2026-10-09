@@ -66,19 +66,19 @@ Arrêter le serveur : Ctrl+C. Ollama doit rester lancé en arrière-plan.
 ## Où voir quoi
 
 - **Le chatbot** : http://localhost:8000
-- **Le back-office de la Maison Delcourt** (clients uniquement) : http://localhost:8000/admin
+- **Le back-office de la Maison Delcourt** : http://localhost:8000/admin
   Affiche un formulaire de connexion (pas de fenêtre native du navigateur) : identifiants par défaut
-  `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »).
+  `admin` / `delcourt` (changez-les, voir « Réglages facultatifs »). Il ne contient aucune donnée client.
 - **La documentation de l'API** : http://localhost:8000/docs
-- **La base de données** : le fichier `chocobot.db`, créé au premier message, dans le dossier où vous lancez `uvicorn`.
-  Ouvrez-le avec [DB Browser for SQLite](https://sqlitebrowser.org/) (ou `sqlite3 chocobot.db`). Table : `customers`.
-  Aucun historique de conversation n'y est stocké : la table `messages` n'existe plus (les anciennes données sont purgées au démarrage).
-  Pour repartir de zéro, arrêtez le serveur et supprimez ce fichier.
+- **La base de données** : le fichier `chocobot.db` ne contient **aucune table ni aucune donnée**.
+  Il est créé (vide) au démarrage, quand `db.py` purge les tables héritées (`customers`, `messages`)
+  et les anciennes données. Rien n'y est écrit par la suite.
 
 ## Mesurer
 
-`python load_test.py 2` simule 2 conversations (10 messages), avec de nouvelles sessions à chaque lancement :
-pratique pour mesurer l'état avant/après. Chaque message prend plusieurs secondes : commencez petit.
+`python load_test.py 2` simule 2 conversations (10 messages), avec le profil transmis à chaque message
+(rien n'étant stocké, les sessions sont indifférentes) : pratique pour mesurer l'état avant/après.
+Chaque message prend plusieurs secondes : commencez petit.
 
 ## Réglages facultatifs
 
@@ -102,20 +102,24 @@ réglages), décommentez les lignes voulues, puis relancez `uvicorn`.
 
 ## Fin de conversation
 
-Aucun historique de conversation n'est **jamais enregistré en base** : les messages vivent uniquement en mémoire le
-temps de la conversation active et n'apparaissent jamais dans le back-office. Cet historique en mémoire est oublié :
+Aucune donnée n'est conservée, ni en base ni en mémoire :
 
-- au clic sur « Nouvelle conversation » ;
-- à la fermeture ou au rechargement de l'onglet ;
-- automatiquement après 30 minutes d'inactivité de la session ;
-- à chaque redémarrage du serveur.
+- chaque message est traité seul : aucun historique de conversation n'est envoyé au modèle,
+  ni enregistré (il n'existe ni table `messages`, ni historique en mémoire côté serveur) ;
+- les informations du formulaire (nom, email, allergies, âge des enfants) ne sont envoyées
+  qu'avec vos messages et ne sont jamais écrites nulle part ;
+- le serveur ne garde aucune session : rien n'est oublié parce que rien n'a été retenu ;
+- le back-office n'affiche ni client ni message.
+
+Tout disparaît donc à la fermeture ou au rechargement de l'onglet, sans action particulière.
+« Nouvelle conversation » vide l'affichage et repart de zéro côté navigateur.
 
 ## Structure
 
 - `app.py` : API FastAPI
 - `chatbot.py` : logique de conversation
 - `llm.py` : appel au modèle (Ollama)
-- `db.py` : stockage SQLite
+- `db.py` : purge des tables héritées au démarrage (aucun stockage)
 - `static/` : page de chat et back-office
 - `data/catalog.json` : catalogue des coffrets
 - `check_llm.py` : test de connexion au modèle

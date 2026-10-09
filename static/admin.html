@@ -24,10 +24,6 @@ input:focus{outline:2px solid #b8893b;border-color:#b8893b}
 .stat{background:#fff;border:1px solid #e4d5bb;border-radius:6px;padding:12px 18px}
 .stat b{display:block;font-size:1.5rem}
 h2{margin:22px 0 8px;font-size:1rem;text-transform:uppercase;letter-spacing:.08em;color:#4a2a1c}
-.wrap{overflow-x:auto;background:#fff;border:1px solid #e4d5bb;border-radius:6px}
-table{border-collapse:collapse;width:100%;font-size:.88rem}
-th,td{padding:8px 12px;border-bottom:1px solid #f0e6d2;text-align:left;vertical-align:top}
-th{background:#faf3e4;position:sticky;top:0}
 small{color:#7a6657}
 </style>
 </head>
@@ -48,27 +44,19 @@ small{color:#7a6657}
  </section>
  <section id="dash" style="display:none">
   <div class="stats">
-   <div class="stat"><b id="nc">–</b>clients</div>
+   <div class="stat"><b>aucune</b>donnée client</div>
    <div class="stat"><b id="mode">–</b>modèle LLM (Ollama)</div>
    <div class="stat"><b>non suivi</b>tokens / coût / erreurs</div>
   </div>
-  <h2>Clients</h2>
-  <div class="wrap"><table id="tc"></table></div>
-  <p><small>Aucun historique de conversation n'est conservé : les messages ne sont ni enregistrés ni affichés ici.</small></p>
+  <h2>Données conservées</h2>
+  <p><small>Aucune donnée client n'est conservée : ni fiche (nom, email, allergies, âge des enfants),
+   ni historique de conversation. Le serveur traite chaque message sans jamais l'enregistrer,
+   et les informations saisies dans le formulaire restent dans l'onglet du visiteur.</small></p>
  </section>
 </main>
 <script>
 let auth = null;
-const fmt = t => new Date(t * 1000).toLocaleString("fr-FR");
 const toB64 = s => btoa(String.fromCharCode(...new TextEncoder().encode(s)));
-function table(el, cols, rows){
-  el.innerHTML = "<tr>" + cols.map(c => "<th>" + c[1] + "</th>").join("") + "</tr>" +
-    rows.map(r => "<tr>" + cols.map(c => {
-      const v = c[0] === "created_at" ? fmt(r[c[0]]) : r[c[0]];
-      const d = document.createElement("div"); d.textContent = v ?? "";
-      return "<td>" + d.innerHTML + "</td>";
-    }).join("") + "</tr>").join("");
-}
 function showLogin(msg){
   auth = null;
   document.getElementById("dash").style.display = "none";
@@ -91,9 +79,7 @@ function load(){
     return r.json();
   }).then(d => {
     showDash();
-    document.getElementById("nc").textContent = d.customers.length;
     document.getElementById("mode").textContent = d.llm.big;
-    table(document.getElementById("tc"), [["created_at","Date"],["name","Nom"],["email","Email"],["allergies","Allergies"],["children_ages","Enfants"],["session_id","Session"]], d.customers);
   });
 }
 document.getElementById("f").addEventListener("submit", ev => {

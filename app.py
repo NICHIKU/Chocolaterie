@@ -6,8 +6,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
-from chatbot import handle_chat, clear_history
-import db
+from chatbot import handle_chat
+import db  # purge les tables héritées au démarrage : rien n'est stocké
 import llm
 
 app = FastAPI(title="ChocoBot - Maison Delcourt")
@@ -17,21 +17,17 @@ ADMIN_USER = os.getenv("ADMIN_USER", "admin")
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "delcourt")
 
 
-class ChatIn(BaseModel):
-    session_id: str
-    message: str
-
-
-class SessionIn(BaseModel):
-    session_id: str
-
-
-class ProfileIn(BaseModel):
-    session_id: str
+class Profile(BaseModel):
+    """Informations saisies par le client : transmises avec le message, jamais conservées."""
     name: str = ""
     email: str = ""
     allergies: str = ""
     children_ages: str = ""
+
+
+class ChatIn(BaseModel):
+    message: str
+    profile: Profile = Profile()
 
 
 def is_admin(request: Request) -> bool:
@@ -54,26 +50,12 @@ def home():
     return FileResponse("static/index.html")
 
 
-@app.post("/profile")
-def profile(body: ProfileIn):
-    db.save_customer(body.session_id, body.name, body.email, body.allergies, body.children_ages)
-    return {"status": "saved"}
-
-
 @app.post("/chat")
 def chat(body: ChatIn):
-    return handle_chat(body.session_id, body.message)
+    return handle_chat(body.message, body.profile.model_dump())
 
 
-# Fin de conversation : on oublie l'historique en mémoire de cette session
-@app.post("/chat/end")
-def chat_end(body: SessionIn):
-    clear_history(body.session_id)
-    return {"status": "cleared"}
-
-
-# Back-office de l'équipe Delcourt : uniquement les clients enregistrés,
-# aucun historique de conversation n'y figure.
+# Back-office de l'équipe Delcourt : aucun client, aucun message n'y figure.
 # /admin affiche toujours le formulaire ; seules les données sont protégées,
 # sans header WWW-Authenticate pour ne jamais déclencher la popup du navigateur.
 @app.get("/admin")
@@ -85,9 +67,7 @@ def admin():
 def admin_data(request: Request):
     if not is_admin(request):
         raise HTTPException(status_code=401, detail="Authentification requise")
-    data = db.get_all()
-    data["llm"] = {"big": llm.BIG_MODEL, "small": llm.SMALL_MODEL}
-    return data
+    return {"llm": {"big": llm.BIG_MODEL, "small": llm.SMALL_MODEL}}
 
 
 @app.get("/health")

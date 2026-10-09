@@ -41,6 +41,7 @@ button.go:hover{filter:brightness(1.1)}
 aside{padding:20px;align-self:start}
 aside h2{margin:0 0 4px;font-size:1.05rem}
 aside p{margin:0 0 14px;font-size:.85rem;color:#6b5445;font-style:italic}
+#privacy{font-style:normal;font-size:.78rem;line-height:1.45;border-top:1px solid var(--ligne);padding-top:10px}
 aside label{display:block;font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;margin:10px 0 3px;color:var(--cacao2)}
 .save{width:100%;margin-top:16px;padding:11px 8px}
 #saved{margin-top:8px;font-size:.82rem;color:#3d7a3d;min-height:1.2em}
@@ -57,8 +58,10 @@ aside input,aside select{width:100%;padding:9px 10px;border:1px solid var(--lign
     <div>
      <strong>Assistant IA · Clémence</strong><br>
      Ce chat est animé par un <strong>assistant intelligence artificielle</strong>, et non par une personne.
-     Vos messages <strong>ne sont pas conservés</strong> : aucun historique de conversation n'est enregistré ni visible dans le back-office.
-     <strong>Ne transmettez aucune donnée sensible</strong> (paiement, mot de passe, carte bancaire…). L'historique disparaît à la fermeture ou au rechargement de la page.
+     Aucune donnée n'est conservée : le serveur ne garde <strong>aucun historique de conversation</strong> et ne traite
+     que le message que vous envoyez, sans jamais l'enregistrer ni l'afficher dans le back-office.
+     <strong>Ne transmettez aucune donnée sensible</strong> (paiement, mot de passe, carte bancaire…).
+     L'affichage ci-dessous n'existe que dans votre onglet et disparaît à la fermeture ou au rechargement de la page.
     </div>
     <button class="notice-close" id="notice-close" aria-label="Fermer l'avertissement">✕</button>
    </div>
@@ -76,6 +79,10 @@ aside input,aside select{width:100%;padding:9px 10px;border:1px solid var(--lign
  <aside class="box">
   <h2>Pour mieux vous conseiller</h2>
   <p>Ces informations nous aident à choisir le coffret idéal.</p>
+  <p id="privacy"><strong>Confidentialité :</strong> ces informations restent dans cet onglet : elles ne sont
+   envoyées qu'avec vos messages, ne sont enregistrées nulle part (ni base de données, ni fichier,
+   ni stockage de votre navigateur : localStorage, cookie…) et disparaissent
+   dès que vous rechargez ou fermez la page.</p>
   <label for="name">Prénom et nom</label><input id="name">
   <label for="email">Email</label><input id="email" type="email">
   <label for="allergies">Allergies</label><input id="allergies" placeholder="ex. noisettes, gluten">
@@ -95,7 +102,9 @@ aside input,aside select{width:100%;padding:9px 10px;border:1px solid var(--lign
 const log = document.getElementById("log");
 const ids = ["name", "email", "allergies", "kids"];
 const el = id => document.getElementById(id);
-let sid = localStorage.sid || (localStorage.sid = crypto.randomUUID());
+// Aucun stockage navigateur (localStorage, cookie, IndexedDB) : les informations
+// du formulaire ne vivent que dans ces variables, donc disparaissent au rechargement.
+let profile = {};
 let busy = false;
 
 function add(text, who){
@@ -114,11 +123,6 @@ async function post(path, payload){
   if (!r.ok) throw new Error("HTTP " + r.status);
   return r.json();
 }
-// Fin de conversation : on demande au serveur d'effacer l'historique des messages
-function endConversation(keepalive){
-  return fetch("/chat/end", {method: "POST", headers: {"Content-Type": "application/json"},
-                             body: JSON.stringify({session_id: sid}), keepalive: !!keepalive}).catch(() => {});
-}
 async function send(text){
   if (busy) return;
   busy = true; el("go").disabled = true;
@@ -126,7 +130,7 @@ async function send(text){
   const wait = add("", "bot");
   wait.lastChild.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
   try {
-    wait.lastChild.textContent = (await post("/chat", {session_id: sid, message: text})).reply;
+    wait.lastChild.textContent = (await post("/chat", {message: text, profile: profile})).reply;
   } catch (e) {
     wait.lastChild.textContent = "Désolé, une erreur est survenue.";
   }
@@ -140,29 +144,22 @@ el("send").onsubmit = e => {
 };
 document.querySelectorAll(".chip").forEach(c => c.onclick = () => send(c.textContent));
 
-// Les informations ne partent qu'au clic sur le bouton
-el("save").onclick = async () => {
-  el("save").disabled = true;
-  try {
-    await post("/profile", {session_id: sid, name: el("name").value, email: el("email").value,
-                            allergies: el("allergies").value, children_ages: el("kids").value});
-    el("saved").style.color = "#3d7a3d"; el("saved").textContent = "✓ Informations enregistrées";
-  } catch (e) {
-    el("saved").style.color = "#a3243b"; el("saved").textContent = "Échec de l'enregistrement";
-  }
-  el("save").disabled = false;
+// Enregistrement local : les informations restent dans l'onglet et partent
+// uniquement avec les messages de chat, jamais dans une base de données.
+el("save").onclick = () => {
+  profile = {name: el("name").value, email: el("email").value,
+             allergies: el("allergies").value, children_ages: el("kids").value};
+  el("saved").style.color = "#3d7a3d";
+  el("saved").textContent = "✓ Enregistré pour cet onglet (oublié au rechargement)";
 };
 ids.forEach(id => el(id).addEventListener("input", () => el("saved").textContent = ""));
 
 el("reset").onclick = () => {
-  endConversation(false);
-  sid = localStorage.sid = crypto.randomUUID();
+  profile = {};
   log.innerHTML = ""; ids.forEach(id => el(id).value = ""); el("saved").textContent = "";
   showNotice();
   welcome();
 };
-// Fermeture ou rechargement de l'onglet : la conversation est terminée
-addEventListener("pagehide", e => { if (!e.persisted) endConversation(true); });
 welcome();
 </script>
 </body>

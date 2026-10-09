@@ -1,100 +1,51 @@
+import sqlite3
+
 import db
 
 
-class FakeConn:
-    """Faux objet connexion : enregistre les requêtes SQL et renvoie des réponses programmées."""
-
-    def __init__(self, fetchone_result=None, fetchall_results=None):
-        self.calls = []
-        self.commits = 0
-        self.fetchone_result = fetchone_result
-        self.fetchall_results = list(fetchall_results or [])
-
-    def execute(self, sql, params=()):
-        self.calls.append((sql, params))
-        return self
-
-    def fetchone(self):
-        return self.fetchone_result
-
-    def fetchall(self):
-        return self.fetchall_results.pop(0) if self.fetchall_results else []
-
-    def commit(self):
-        self.commits += 1
+def make_legacy_db(tmp_path):
+    """Base héritée : une fiche client + un historique de messages."""
+    path = tmp_path / "legacy.db"
+    conn = sqlite3.connect(path)
+    conn.execute("CREATE TABLE customers (session_id TEXT PRIMARY KEY, name TEXT, email TEXT)")
+    conn.execute("CREATE TABLE messages (id INTEGER PRIMARY KEY, content TEXT)")
+    conn.execute("INSERT INTO customers VALUES ('s1', 'Léa', 'lea@example.com')")
+    conn.execute("INSERT INTO messages VALUES (1, 'bonjour')")
+    conn.commit()
+    conn.close()
+    return str(path)
 
 
-def fake_conn(monkeypatch, **kwargs):
-    conn = FakeConn(**kwargs)
-    monkeypatch.setattr(db, "conn", conn)
-    return conn
+def tables(db_path):
+    conn = sqlite3.connect(db_path)
+    names = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    conn.close()
+    return names
 
 
-def test_save_customer_executes_insert_and_commits(monkeypatch):
-    conn = fake_conn(monkeypatch)
-    monkeypatch.setattr(db.time, "time", lambda: 1_700_000_000.0)
+def test_purge_drops_legacy_tables_and_rows(tmp_path):
+    path = make_legacy_db(tmp_path)
 
-    db.save_customer("s1", "Léa", "lea@example.com", "noisettes", "6 ans")
+    db.purge(path)
 
-    assert conn.calls == [
-        (
-            "INSERT OR REPLACE INTO customers VALUES (?,?,?,?,?,?)",
-            ("s1", "Léa", "lea@example.com", "noisettes", "6 ans", 1_700_000_000.0),
-        )
-    ]
-    assert conn.commits == 1
+    assert tables(path) == set()
 
 
-def test_get_customer_maps_row_to_dict(monkeypatch):
-    conn = fake_conn(monkeypatch, fetchone_result=("Léa", "lea@example.com", "noisettes", "4-6 ans"))
+def test_purge_is_safe_on_a_missing_or_empty_database(tmp_path):
+    path = str(tmp_path / "vide.db")
 
-    assert db.get_customer("s1") == {
-        "name": "Léa",
-        "email": "lea@example.com",
-        "allergies": "noisettes",
-        "children_ages": "4-6 ans",
-    }
-    sql, params = conn.calls[0]
-    assert "WHERE session_id=?" in sql
-    assert "name, email, allergies, children_ages" in sql
-    assert params == ("s1",)
+    db.purge(path)
+    db.purge(path)  # deux purges d'affilée : aucune erreur, aucune table
+
+    assert tables(path) == set()
 
 
-def test_get_unknown_customer_returns_empty_dict(monkeypatch):
-    conn = fake_conn(monkeypatch, fetchone_result=None)
-
-    assert db.get_customer("inconnu") == {}
-    assert conn.calls  # la requête est bien exécutée même sans ligne
-
-
-def test_db_exposes_no_message_persistence():
-    """Aucune écriture ni lecture d'historique de conversation dans SQLite."""
-    for name in ["save_message", "get_history", "clear_history"]:
+def test_db_exposes_no_storage_at_all():
+    """db.py ne doit avoir ni écriture ni lecture de données utilisateur."""
+    for name in ["save_customer", "get_customer", "get_all", "save_message", "get_history", "clear_history"]:
         assert not hasattr(db, name), f"db.{name} ne doit plus exister"
 
 
-def test_get_all_returns_only_customers(monkeypatch):
-    conn = fake_conn(
-        monkeypatch,
-        fetchall_results=[
-            [("s1", "Léa", "lea@example.com", "noisettes", "6 ans", 1.0)],
-        ],
-    )
-
-    data = db.get_all()
-
-    assert data == {
-        "customers": [
-            {
-                "session_id": "s1",
-                "name": "Léa",
-                "email": "lea@example.com",
-                "allergies": "noisettes",
-                "children_ages": "6 ans",
-                "created_at": 1.0,
-            }
-        ],
-    }
-    assert "messages" not in data
-    assert len(conn.calls) == 1
-    assert "ORDER BY created_at DESC" in conn.calls[0][0]
+def test_startup_purge_left_no_legacy_table_in_the_real_database():
+    """Le purgeur exécuté à l'import a bien vidé chocobot.db (le fichier est conservé, vide)."""
+    assert tables("chocobot.db") & {"customers", "messages"} == set()

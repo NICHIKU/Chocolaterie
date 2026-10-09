@@ -1,7 +1,7 @@
 """Envoie une série de messages réalistes à ChocoBot (serveur lancé sur le port 8000).
 Usage : python load_test.py [nombre_de_conversations]   (défaut : 2, soit 10 messages)
 Avec un vrai LLM chaque message prend plusieurs secondes : commencez petit."""
-import json, sys, time, urllib.request
+import json, sys, urllib.request
 
 BASE = "http://localhost:8000"
 SCENARIO = [
@@ -11,6 +11,8 @@ SCENARIO = [
     "Quels sont vos horaires ?",
     "Merci, je prends le coffret sans noix !",
 ]
+# Informations transmises avec chaque message, jamais stockées côté serveur.
+PROFILE = {"name": "", "email": "", "allergies": "noisettes", "children_ages": "7-10 ans"}
 
 
 def post(path, payload):
@@ -20,11 +22,7 @@ def post(path, payload):
 
 
 n = int(sys.argv[1]) if len(sys.argv) > 1 else 2
-RUN = int(time.time())  # sessions neuves à chaque lancement : mesures comparables
 for i in range(n):
-    sid = f"test-{RUN}-{i}"
-    post("/profile", {"session_id": sid, "name": f"Client Test {i}", "email": f"client{i}@example.com",
-                      "allergies": "noisettes", "children_ages": "7-10 ans"})
     for msg in SCENARIO:
-        post("/chat", {"session_id": sid, "message": msg})
+        post("/chat", {"message": msg, "profile": PROFILE})
 print(f"{n * len(SCENARIO)} messages envoyés.")
