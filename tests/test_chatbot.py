@@ -37,14 +37,19 @@ def store(monkeypatch):
     return fake
 
 
+FALLBACK_REPLY = "Désolé, je n'ai pas pu répondre. Pouvez-vous reformuler votre demande ?"
+
+
 def fake_llm(monkeypatch, reply="Voici un coffret.", exc=None):
     """Remplace llm.chat et renvoie la liste des appels reçus."""
     calls = []
 
-    def chat(model, messages, max_tokens=1500):
+    def chat(model, messages, max_tokens=1500, temperature=None):
         calls.append({"model": model, "messages": messages, "max_tokens": max_tokens})
         if exc is not None:
             raise exc
+        if max_tokens == 5:
+            return "OUI", {}
         return reply, {}
 
     monkeypatch.setattr(llm, "chat", chat)
@@ -64,7 +69,7 @@ def test_customer_context_lists_only_filled_fields():
     assert "- Nom : Léa" in context
     assert "- Allergies : noisettes" in context
     assert "- Email" not in context
-    assert "- Âge des enfants" not in context
+    assert "- Tranche d'âge" not in context
     assert context.splitlines()[-1].startswith("Appelle le client par son prénom")
 
 
@@ -74,12 +79,12 @@ def test_customer_context_with_all_fields():
             "name": "Léa",
             "email": "lea@example.com",
             "allergies": "noisettes",
-            "children_ages": "6 et 9 ans",
+            "children_ages": "7-10 ans",
         }
     )
 
     assert "- Email : lea@example.com" in context
-    assert "- Âge des enfants : 6 et 9 ans" in context
+    assert "- Tranche d'âge des enfants : 7-10 ans" in context
 
 
 def test_system_prompt_contains_the_catalogue():
@@ -113,7 +118,7 @@ def test_handle_chat_sends_system_prompt_and_history_to_llm(store, monkeypatch):
 
     chatbot.handle_chat("s1", "et maintenant ?")
 
-    messages = calls[0]["messages"]
+    messages = calls[-1]["messages"]
     assert messages[0]["role"] == "system"
     assert messages[0]["content"].startswith(chatbot.SYSTEM_PROMPT)
     assert "- Nom : Léa" in messages[0]["content"]
@@ -132,17 +137,13 @@ def test_handle_chat_without_customer_uses_empty_context(store, monkeypatch):
 def test_handle_chat_falls_back_when_llm_fails(store, monkeypatch):
     fake_llm(monkeypatch, exc=RuntimeError("Ollama arrêté"))
 
-    assert chatbot.handle_chat("s1", "Bonjour") == {
-        "reply": "Désolé, une erreur est survenue. Réessayez plus tard."
-    }
-    assert store.saved[0] == ("s1", "user", "Bonjour")
-    assert store.saved[1][0] == "s1"
-    assert store.saved[1][1] == "assistant"
-    assert "erreur" in store.saved[1][2]
+    assert chatbot.handle_chat("s1", "Bonjour") == {"reply": FALLBACK_REPLY}
+    assert store.saved == [("s1", "user", "Bonjour")]
 
 
 @pytest.mark.parametrize("exc", [ZeroDivisionError("div par zéro"), ValueError("")])
 def test_handle_chat_falls_back_on_any_exception(store, monkeypatch, exc):
     fake_llm(monkeypatch, exc=exc)
 
-    assert "erreur" in chatbot.handle_chat("s1", "salut")["reply"]
+    assert chatbot.handle_chat("s1", "salut") == {"reply": FALLBACK_REPLY}
+    assert store.saved == [("s1", "user", "salut")]

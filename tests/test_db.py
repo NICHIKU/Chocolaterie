@@ -46,7 +46,7 @@ def test_save_customer_executes_insert_and_commits(monkeypatch):
 
 
 def test_get_customer_maps_row_to_dict(monkeypatch):
-    conn = fake_conn(monkeypatch, fetchone_result=("Léa", "lea@example.com", "noisettes", "6 ans"))
+    conn = fake_conn(monkeypatch, fetchone_result=("Léa", "lea@example.com", "noisettes", "4-6 ans"))
 
     assert db.get_customer("s1") == {
         "name": "Léa",
